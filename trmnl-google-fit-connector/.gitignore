@@ -1,0 +1,15 @@
+# Local notes and secrets
+.env
+.env.*
+*.local
+secrets.txt
+token.txt
+TRMNL_TOKEN.txt
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log

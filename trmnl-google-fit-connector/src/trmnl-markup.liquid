@@ -1,0 +1,129 @@
+{% assign _d = data %}
+{% if _d == blank and data.data %}{% assign _d = data.data %}{% endif %}
+{% assign T = _d.totals  | default: totals  %}
+{% assign G = _d.goals   | default: goals   %}
+{% assign D = _d.dateISO | default: dateISO %}
+{% assign H = _d.nowHour | default: nowHour | plus: 0 %}
+
+{% assign start_h = 9 %}
+{% assign goal_h = 19 %}
+
+{% assign stepGoal  = G.steps       | default: 6500 | plus: 0 %}
+{% assign heartGoal = G.heartPoints | default: 20   | plus: 0 %}
+{% assign moveGoal  = G.moveMinutes | default: 60   | plus: 0 %}
+{% assign calGoal   = G.calories    | default: 2200 | plus: 0 %}
+
+{% assign stepsNow = T.steps       | default: 0 | plus: 0 %}
+{% assign hpNow    = T.heartPoints | default: 0 | plus: 0 %}
+{% assign moveNow  = T.moveMinutes | default: 0 | plus: 0 %}
+{% assign calNow   = T.calories    | default: 0 | plus: 0 %}
+
+{% assign slots = goal_h | minus: start_h %}
+{% if H < start_h %}
+  {% assign pace_pct = 0 %}
+{% elsif H >= goal_h %}
+  {% assign pace_pct = 1 %}
+{% else %}
+  {% assign slot = H | minus: start_h | plus: 1 %}
+  {% assign pace_pct = slot | times: 1.0 | divided_by: slots %}
+{% endif %}
+
+{% assign actual_pct = 0 %}
+{% if stepGoal > 0 %}
+  {% assign actual_pct = stepsNow | times: 1.0 | divided_by: stepGoal %}
+  {% if actual_pct > 1 %}{% assign actual_pct = 1 %}{% endif %}
+{% endif %}
+
+{% assign pace_target = stepGoal | times: pace_pct | round %}
+{% assign delta_steps = stepsNow | minus: pace_target %}
+{% assign delta_abs = delta_steps | abs %}
+{% assign actual_width = actual_pct | times: 100 | round %}
+{% assign pace_width = pace_pct | times: 100 | round %}
+
+<style>
+  .gfit-card{font-family:system-ui,Segoe UI,Roboto,sans-serif;color:#000;padding:12px;border:1px solid #000;border-radius:16px}
+  .gfit-row{display:flex;justify-content:space-between;align-items:baseline}
+  .gfit-date{font-size:13px;opacity:.7}
+  .gfit-stepsWrap{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin:10px 0}
+  .gfit-steps{font-size:56px;font-weight:900;line-height:1}
+  .gfit-meta{font-size:12px;opacity:.75}
+  .gfit-barline{display:grid;grid-template-columns:64px 1fr 44px;gap:8px;align-items:center;margin-top:6px}
+  .gfit-label{font-size:12px;opacity:.75}
+  .gfit-bar{position:relative;height:16px;background:#eee;border:1px solid #000;border-radius:10px;overflow:hidden}
+  .gfit-fill{position:absolute;left:0;top:0;height:100%;background:#000}
+  .gfit-pct{font-size:12px;opacity:.75;text-align:right}
+  .gfit-ruler{display:flex;justify-content:space-between;font-size:11px;opacity:.6;margin-top:4px}
+  .gfit-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .gfit-mini{border:1px solid #000;border-radius:12px;padding:8px}
+  .gfit-lbl{font-size:12px;opacity:.75}
+  .gfit-big{font-size:22px;font-weight:800;line-height:1;margin:2px 0}
+  .gfit-micro{height:8px;background:#eee;border:1px solid #000;border-radius:6px;overflow:hidden;position:relative}
+  .gfit-status{font-size:12px;margin-top:4px}
+  .gfit-good{font-weight:700}
+</style>
+
+<div class="gfit-card">
+  <div class="gfit-row">
+    <div style="font-size:18px;font-weight:700">Activity today</div>
+    <div class="gfit-date">{{ D }}</div>
+  </div>
+
+  <div class="gfit-stepsWrap">
+    <div>
+      <div class="gfit-steps">{{ stepsNow }}</div>
+      <div class="gfit-meta">Goal {{ stepGoal }} · {{ actual_width }}%</div>
+    </div>
+
+    <div>
+      <div class="gfit-barline">
+        <div class="gfit-label">Actual</div>
+        <div class="gfit-bar"><div class="gfit-fill" style="width:{{ actual_width }}%;"></div></div>
+        <div class="gfit-pct">{{ actual_width }}%</div>
+      </div>
+
+      <div class="gfit-barline">
+        <div class="gfit-label">Pace</div>
+        <div class="gfit-bar"><div class="gfit-fill" style="width:{{ pace_width }}%;opacity:.5;"></div></div>
+        <div class="gfit-pct">{{ pace_width }}%</div>
+      </div>
+
+      <div class="gfit-ruler"><span>9a</span><span>12p</span><span>3p</span><span>7p</span></div>
+
+      <div class="gfit-status">
+        Target by now: {{ pace_target }}
+        ·
+        {% if delta_steps >= 0 %}
+          <span class="gfit-good">Ahead +{{ delta_steps }}</span>
+        {% else %}
+          Behind {{ delta_abs }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="gfit-grid3">
+    <div class="gfit-mini">
+      <div class="gfit-lbl">Heart Points</div>
+      <div class="gfit-big">{{ hpNow }}</div>
+      {% assign hpPct = 0 %}{% if heartGoal > 0 %}{% assign hpPct = hpNow | times:100 | divided_by:heartGoal | round %}{% endif %}
+      <div class="gfit-micro"><div class="gfit-fill" style="width:{{ hpPct }}%;"></div></div>
+      <div class="gfit-meta">{{ hpPct }}% of {{ heartGoal }}</div>
+    </div>
+
+    <div class="gfit-mini">
+      <div class="gfit-lbl">Move Minutes</div>
+      <div class="gfit-big">{{ moveNow }}</div>
+      {% assign mvPct = 0 %}{% if moveGoal > 0 %}{% assign mvPct = moveNow | times:100 | divided_by:moveGoal | round %}{% endif %}
+      <div class="gfit-micro"><div class="gfit-fill" style="width:{{ mvPct }}%;"></div></div>
+      <div class="gfit-meta">{{ mvPct }}% of {{ moveGoal }}</div>
+    </div>
+
+    <div class="gfit-mini">
+      <div class="gfit-lbl">Calories</div>
+      <div class="gfit-big">{{ calNow }}</div>
+      {% assign calPct = 0 %}{% if calGoal > 0 %}{% assign calPct = calNow | times:100 | divided_by:calGoal | round %}{% endif %}
+      <div class="gfit-micro"><div class="gfit-fill" style="width:{{ calPct }}%;"></div></div>
+      <div class="gfit-meta">{{ calPct }}% of {{ calGoal }} kcal</div>
+    </div>
+  </div>
+</div>
